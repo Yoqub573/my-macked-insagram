@@ -9,7 +9,7 @@ export const useUserStore = create((set, get) => ({
  
   fetchUsers: async () => {
     try {
-      let res = await axiosRequest.get(`/Post/get-posts?PageSize=10000`, {});
+      let res = await axiosRequest.get(`/Post/get-posts`, {});
       set({ users: res.data });
     } catch (error) {
       console.error(error);

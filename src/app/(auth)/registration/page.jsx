@@ -12,6 +12,7 @@ import image71 from "../../../assets/img/pages/auth/registration/image 71.png";
 import image72 from "../../../assets/img/pages/auth/registration/image 72.png";
 import image73 from "../../../assets/img/pages/auth/registration/image 73.png";
 import toast, { Toaster } from "react-hot-toast";
+import Link from 'next/link'
 
 export default function Registration() {
   const {
@@ -139,17 +140,17 @@ export default function Registration() {
 
             <p className="text-xs text-center text-gray-500">
               By signing up, you agree to our{" "}
-              <a href="#" className="font-semibold">
+              <Link href={"#"} className="font-semibold">
                 Terms
-              </a>
+              </Link>
               ,{" "}
-              <a href="#" className="font-semibold">
+              <Link href={"#"} className="font-semibold">
                 Privacy Policy
-              </a>{" "}
+              </Link>{" "}
               and{" "}
-              <a href="#" className="font-semibold">
+              <Link href={"#"} className="font-semibold">
                 Cookies Policy
-              </a>
+              </Link>
               .
             </p>
 
@@ -166,9 +167,9 @@ export default function Registration() {
           <div className="mt-6 border-t pt-4 text-center">
             <p className="text-sm">
               Have an account?{" "}
-              <a href="/login" className="text-blue-500 font-semibold">
+              <Link href={"/login"} className="text-blue-500 font-semibold">
                 Log in
-              </a>
+              </Link>
             </p>
           </div>
         </div>

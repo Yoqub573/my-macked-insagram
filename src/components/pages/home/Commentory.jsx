@@ -2,13 +2,13 @@
 
 import { useHome } from '@/store/pages/home/store'
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import userIMG from '../../../assets/img/pages/home/userDefault.png'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-export default function Commentory({ UserId, setClose }) {
-  let {getUserStories, postStory} = useHome()
+function Commentory({ UserId, setClose }) {
+	let { getUserStories, postStory } = useHome()
 	const [theme, setTheme] = useState(
 		typeof window !== 'undefined' ? localStorage.getItem('theme') || '' : ''
 	)
@@ -59,7 +59,6 @@ export default function Commentory({ UserId, setClose }) {
 		setMessage('')
 	}
 
-
 	const onClear = () => {
 		setFile(null)
 		setPreviewUrl(null)
@@ -75,12 +74,12 @@ export default function Commentory({ UserId, setClose }) {
 		try {
 			setSaving(true)
 			setMessage('')
-      
+
 			const formData = new FormData()
 			formData.append('Image', file)
 			await postStory(formData)
-      
-      getUserStories()
+
+			getUserStories()
 			setMessage('Файл успешно загружен!')
 			onClear()
 		} catch (err) {
@@ -92,7 +91,7 @@ export default function Commentory({ UserId, setClose }) {
 	}
 
 	useEffect(() => () => revokePrevUrl(), [])
-	let {t} = useTranslation()
+	let { t } = useTranslation()
 	return (
 		<form
 			onSubmit={onSave}
@@ -101,7 +100,9 @@ export default function Commentory({ UserId, setClose }) {
 			} z-[999999999999] shadow-2xl p-6 flex flex-col gap-4`}
 		>
 			<div className='flex items-center justify-between'>
-				<h2 className='text-lg md:text-xl font-semibold'>{t("home.Loading_history")}</h2>
+				<h2 className='text-lg md:text-xl font-semibold'>
+					{t('home.Loading_history')}
+				</h2>
 				<button
 					type='button'
 					onClick={onClear}
@@ -173,4 +174,4 @@ export default function Commentory({ UserId, setClose }) {
 		</form>
 	)
 }
-
+export default React.memo(Commentory)

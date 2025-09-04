@@ -1,4 +1,6 @@
 'use client'
+
+import React from 'react'
 import { useMyProfile } from '@/store/pages/chat/layout/store'
 import { useChatById } from '@/store/pages/chat/pages/chat-by-id/store'
 import { useDefaultChat } from '@/store/pages/chat/pages/default-chat/store'
@@ -60,8 +62,7 @@ function SeeMoreInline({ userId, storId, onSend, liked, onToggleLike }) {
     </div>
   )
 }
-
-export default function SwiperStories({ indexUser = 0 }) {
+function SwiperStories({ indexUser = 0 }) {
   const { data, LikeStory } = useHome()
   const [paused, setPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
@@ -93,7 +94,7 @@ export default function SwiperStories({ indexUser = 0 }) {
       })
     })
     setLikedMap(prev => ({ ...initial, ...prev }))
-  }, [data])
+  }, [])
 
   async function handleCreateChat(id, textMessage) {
     try {
@@ -227,3 +228,4 @@ export default function SwiperStories({ indexUser = 0 }) {
     </div>
   )
 }
+export default React.memo(SwiperStories)

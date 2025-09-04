@@ -1,4 +1,5 @@
 'use client'
+
 import { useHome } from '@/store/pages/home/store'
 import { Skeleton } from '@mui/material'
 import { MessageCircleMore } from 'lucide-react'
@@ -16,7 +17,7 @@ import Link from 'next/link'
 import SwiperStories from '@/components/pages/home/stories'
 import Commentory from '@/components/pages/home/Commentory'
 import { useUserStore } from '@/store/pages/explore/explorestore'
-import * as React from 'react'
+import React from 'react'
 import Modal from '@mui/material/Modal'
 import {
 	CircleUserRound,
@@ -32,6 +33,7 @@ import { Bookmark, Heart } from 'lucide-react'
 import { useUserId } from '@/hook/useUserId'
 import { useRouter } from 'next/navigation'
 import BasicModal from '@/components/pages/explore/BasicModal'
+import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const style = {
@@ -60,8 +62,13 @@ const mediaStyleModal = {
 	cursor: 'pointer',
 	backgroundColor: '#f5f5f5',
 }
-export default function Main() {
-	let {
+function Main() {
+	const router = useRouter()
+	const { t, i18n } = useTranslation()
+	const userId = useUserId()
+
+	// --- User store ---
+	const {
 		savePost,
 		fetchUsers,
 		postById,
@@ -73,160 +80,148 @@ export default function Main() {
 		Follow,
 		FolowUser,
 	} = useUserStore()
-	const [open, setOpen] = React.useState(false)
-	const [isMuted, setIsMuted] = React.useState(false)
-	let [newcomit, setnewComit] = React.useState('')
-	const [likedComments, setLikedComments] = React.useState({})
-	let userId = useUserId()
-	let [follow, setFollow] = React.useState(false)
-	const videoRefs = useRef({})
-	const { i18n } = useTranslation()
-	let cnt = 3
-	let router = useRouter()
 
-	useEffect(() => {
-		fetchUsers()
-		fetchUserFollows(userId)
-	}, [])
-
-	async function RemoveComit(postCommentId) {
-		await deleteComment(postCommentId)
-	}
-
-	const handleOpen = async id => {
-		const isFollowed = FolowUser?.data?.some(
-			e => e.userShortInfo.userId == postById.data?.userId
-		)
-		await fetchPostById(id)
-		try {
-			await fetchUserFollows(userId)
-		} catch (err) {
-			console.error('Ошибка при обновлении списка подписок в handleOpen:', err)
-		}
-		setFollow(Boolean(isFollowed))
-		setOpen(true)
-	}
-
-	const toggleMute = () => {
-		const video = videoRef.current
-		if (video) {
-			video.muted = !video.muted
-			setIsMuted(video.muted)
-		}
-	}
-
-	const handleAddComment = async () => {
-		if (newcomit.trim() === '') return
-		await addComment(newcomit, postById.data?.postId)
-		await fetchPostById(postById.data?.postId)
-		setnewComit('')
-	}
-
-	const handleLikeComment = commentId => {
-		setLikedComments(prev => ({
-			...prev,
-			[commentId]: !prev[commentId],
-		}))
-	}
-
-	async function hendlFollow(id) {
-		const currentlyFollowed = FolowUser?.data?.some(
-			e => e.userShortInfo.userId == id
-		)
-
-		try {
-			if (currentlyFollowed) {
-				await unfollowUser(id)
-				setFollow(true)
-			} else {
-				await Follow(id)
-				setFollow(false)
-			}
-
-			try {
-				await fetchUserFollows(userId)
-			} catch (err) {
-				console.error('Ошибка при fetchUserFollows в hendlFollow:', err)
-			}
-
-			const updatedFollow = FolowUser?.data?.some(
-				e => e.userShortInfo.userId == id
-			)
-		} catch (error) {
-			console.error('Ошибка при подписке/отписке:', error)
-		}
-	}
-	let {
+	// --- Home store ---
+	const {
 		getUserStories,
 		followUser,
 		data,
 		isLoading,
 		posts,
 		getUserPosts,
-		isLoading2,
+		isLoadingPosts,
 		likePost,
 		commentPost,
 		getUser,
 		users,
 		postSaved,
 	} = useHome()
-	const [mutedMap, setMutedMap] = useState({})
+
+	// --- States ---
 	const [stopMap, setStopMap] = useState({})
+	const [stories, setStories] = useState(false)
+	const [comments, setComments] = useState(false)
+	const [idUser, setIdUser] = useState(null)
+	const [Idx, setIdx] = useState(null)
+	const [open, setOpen] = useState(false)
+	const [newComment, setNewComment] = useState('')
+	const [follow, setFollow] = useState(false)
+	const [mutedMap, setMutedMap] = useState({})
 	const [commentsMap, setCommentsMap] = useState({})
-	useEffect(() => {
-		getUserPosts()
-		getUser()
-	}, [])
-	const scrollRef = useRef(null)
-	let isDown = false
-	let startX
-	let scrollLeft
-	useEffect(() => {
-		getUserStories()
-	}, [])
-	let [stories, setStories] = useState(false)
-	let [idUser, setIdUser] = useState(0)
-	let [muted, setMuted] = useState(true)
-	let [comment, setComment] = useState('')
-	const onMouseDown = e => {
-		isDown = true
-		startX = e.pageX - scrollRef.current.offsetLeft
-		scrollLeft = scrollRef.current.scrollLeft
-	}
-	const onMouseLeave = () => {
-		isDown = false
-	}
-	const onMouseUp = () => {
-		isDown = false
-	}
-	const videoRef = React.useRef(null)
-	const onMouseMove = e => {
-		if (!isDown) return
-		e.preventDefault()
-		const x = e.pageX - scrollRef.current.offsetLeft
-		const walk = (x - startX) * 2
-		scrollRef.current.scrollLeft = scrollLeft - walk
-	}
-	let [theme, setTheme] = useState(
+	const [likedComments, setLikedComments] = useState({})
+	const [theme, setTheme] = useState(
 		typeof window !== 'undefined' ? localStorage.getItem('theme') : ''
 	)
+
+	// --- Refs ---
+	const videoRefs = useRef({})
+	const scrollRef = useRef(null)
+	const isDownRef = useRef(false)
+	const startXRef = useRef(0)
+	const scrollLeftRef = useRef(0)
+
+	// --- Effects ---
 	useEffect(() => {
+		fetchUsers()
+		fetchUserFollows(userId)
+		getUserPosts()
+		getUser()
+		getUserStories()
+
 		const handleStorageChange = event => {
-			if (event.key === 'theme') {
-				setTheme(event.newValue)
-			}
+			if (event.key === 'theme') setTheme(event.newValue)
 		}
 		window.addEventListener('storage', handleStorageChange)
-		return () => {
-			window.removeEventListener('storage', handleStorageChange)
+		return () => window.removeEventListener('storage', handleStorageChange)
+	}, [])
+
+	// --- Comments ---
+	const handleAddComment = useCallback(async () => {
+		if (!newComment.trim()) return
+		try {
+			await addComment(newComment, postById.data?.postId)
+			await fetchPostById(postById.data?.postId)
+			setNewComment('')
+		} catch (err) {
+			console.error('Ошибка при добавлении комментария:', err)
+		}
+	}, [newComment, postById])
+
+	const handleRemoveComment = useCallback(async postCommentId => {
+		try {
+			await deleteComment(postCommentId)
+		} catch (err) {
+			console.error('Ошибка при удалении комментария:', err)
 		}
 	}, [])
-	let [comments, setComments] = useState(false)
-	let [commentId, setCommentId] = useState({})
-	let [commentStop, setCommentStop] = useState(false)
-	let [commentMuted, setCommentMuted] = useState(true)
-	let [Idx, setIdx] = useState('')
-	let { t } = useTranslation()
+
+	const handleLikeComment = useCallback(commentId => {
+		setLikedComments(prev => ({
+			...prev,
+			[commentId]: !prev[commentId],
+		}))
+	}, [])
+
+	// --- Post modal ---
+	const handleOpen = useCallback(
+		async id => {
+			try {
+				await fetchPostById(id)
+				await fetchUserFollows(userId)
+				const isFollowed = FolowUser?.data?.some(
+					e => e.userShortInfo.userId == postById.data?.userId
+				)
+				setFollow(Boolean(isFollowed))
+				setOpen(true)
+			} catch (err) {
+				console.error('Ошибка при открытии поста:', err)
+			}
+		},
+		[postById, FolowUser, userId]
+	)
+
+	// --- Follow / Unfollow ---
+	const handleFollowToggle = useCallback(
+		async id => {
+			try {
+				const currentlyFollowed = FolowUser?.data?.some(
+					e => e.userShortInfo.userId == id
+				)
+				if (currentlyFollowed) await unfollowUser(id)
+				else await Follow(id)
+
+				await fetchUserFollows(userId)
+				setFollow(!currentlyFollowed)
+			} catch (err) {
+				console.error('Ошибка при подписке/отписке:', err)
+			}
+		},
+		[FolowUser, Follow, unfollowUser, userId]
+	)
+
+	// --- Video mute toggle ---
+	const toggleMute = useCallback(postId => {
+		const video = videoRefs.current[postId]
+		if (!video) return
+		video.muted = !video.muted
+		setMutedMap(prev => ({ ...prev, [postId]: video.muted }))
+	}, [])
+
+	// --- Scroll handlers ---
+	const onMouseDown = e => {
+		isDownRef.current = true
+		startXRef.current = e.pageX - scrollRef.current.offsetLeft
+		scrollLeftRef.current = scrollRef.current.scrollLeft
+	}
+	const onMouseLeave = () => (isDownRef.current = false)
+	const onMouseUp = () => (isDownRef.current = false)
+	const onMouseMove = e => {
+		if (!isDownRef.current) return
+		e.preventDefault()
+		const x = e.pageX - scrollRef.current.offsetLeft
+		const walk = (x - startXRef.current) * 2
+		scrollRef.current.scrollLeft = scrollLeftRef.current - walk
+	}
 	return (
 		<div className='flex w-full items-start'>
 			<Modal
@@ -483,12 +478,12 @@ export default function Main() {
 
 										<div className='flex gap-2'>
 											<CommentInput
-												value2={newcomit}
-												onChange2={e => setnewComit(e.target.value)}
+												value2={newComment}
+												onChange2={e => setNewComment(e.target.value)}
 											/>
 											<button
 												onClick={handleAddComment}
-												disabled={!newcomit.trim()}
+												disabled={!newComment.trim()}
 												className='text-blue-500 disabled:text-gray-500'
 											>
 												<SendHorizontal size={24} />
@@ -506,10 +501,10 @@ export default function Main() {
 				</Box>
 			</Modal>
 			{stories && (
-				<section className='fixed inset-0 p-[20px] w-[100%] z-[20] h-[100vh] bg-white'>
+				<section className='fixed inset-0 md:p-[20px] p-[10px] w-[100%] z-[20] h-[100vh] bg-white'>
 					<svg
 						onClick={() => setStories(false)}
-						className=' absolute right-[20px]'
+						className='md:size-8 size-5 ml-auto mb-[20px]'
 						xmlns='http://www.w3.org/2000/svg'
 						width='32'
 						height='32'
@@ -533,7 +528,7 @@ export default function Main() {
 							strokeWidth='3'
 						/>
 					</svg>
-					<Link href={'/'}>
+					<Link className='md:inline hidden' href={'/'}>
 						<Image src={image2} className='w-auto' alt='' />
 					</Link>
 					<div className='flex items-center justify-center'>
@@ -665,7 +660,7 @@ export default function Main() {
 					)}
 				</div>
 				<div className='w-[100%] flex flex-col'>
-					{(isLoading2 &&
+					{(isLoadingPosts &&
 						Array.from({ length: 9 }).map((_, i) => (
 							<div key={`skeleton-${i}`} className='flex flex-col px-[3px]'>
 								<div className='flex items-center justify-between'>
@@ -1196,7 +1191,7 @@ export default function Main() {
 				</div>
 				<div className='w-full flex flex-col'>
 					<p className='block text-[#64748B] text-[14px] font-[500] '>
-						{t('home.Suggested_for_you')}
+						 {users?.data ? t('home.Suggested_for_you') : ''}
 					</p>
 					{users?.data?.slice(0, 5).map((e, i) => {
 						return (
@@ -1248,3 +1243,4 @@ export default function Main() {
 		</div>
 	)
 }
+export default React.memo(Main)
