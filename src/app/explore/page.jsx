@@ -291,7 +291,7 @@ export default function Explore() {
 																)}
 															</div>
 														</div>
-														{comment.userId == useUserId() ? (
+														{comment.userId == userId ? (
 															<div className="flex gap-[10px]">
 																<button
 																	className="cursor-pointer hover:text-red-500"
